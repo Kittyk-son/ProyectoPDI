@@ -340,12 +340,7 @@ class ImageEditorApp:
                 messagebox.showinfo("Umbral no aplicado", "No se aplicó umbral ya que se canceló la operación.")
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
-    def convertir_gris(self):
-        print("hola")
-    def histograma(self):
-        print("hola")
-    def componentes_rgb(self):
-        print("hola")
+
     def operaciones_de_ajuste_de_brillo(self):
         try:
             self.ventana_brillo = tk.Toplevel(self.root)
@@ -456,17 +451,6 @@ class ImageEditorApp:
 
     def redimensionar_imagen(self, imagen, nuevo_ancho, nuevo_alto):
         return cv.resize(imagen, (nuevo_ancho, nuevo_alto), interpolation=cv.INTER_AREA)
-
-    def aplicar_umbral(self):
-        if self.image_top is not None:
-            # Convertir a escala de grises
-            gray_image = cv.cvtColor(self.image_top_np, cv.COLOR_RGB2GRAY)
-            # Aplicar umbral (0.5 para umbralización en [0, 1] o el valor puede ser configurado)
-            _, binary_image = cv.threshold(gray_image, 127, 255, cv.THRESH_BINARY)
-            self.result_image = Image.fromarray(binary_image)
-            self.mostrar_imagen_resultado(self.result_image)
-        else:
-            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
     def convertir_gris(self):
         if self.image_top is not None:
