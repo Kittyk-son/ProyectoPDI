@@ -322,7 +322,24 @@ class ImageEditorApp:
             messagebox.showwarning("Advertencia", "Cargar ambas imágenes primero.")
 
     def aplicar_umbral(self):
-        print("Hola")
+        if self.image_top is not None:
+            # Pedir al usuario el valor del umbral
+            umbral = simpledialog.askinteger("Umbral", "Introduce el valor de umbral (0 a 255):", minvalue=0, maxvalue=255)
+            
+            if umbral is not None:  # Asegurarse de que el usuario no canceló el diálogo
+                # Convertir a escala de grises
+                gray_image = cv.cvtColor(self.image_top_np, cv.COLOR_RGB2GRAY)
+                
+                # Aplicar umbral con el valor proporcionado por el usuario
+                _, binary_image = cv.threshold(gray_image, umbral, 255, cv.THRESH_BINARY)
+                
+                # Convertir el resultado a una imagen PIL y mostrarlo
+                self.result_image = Image.fromarray(binary_image)
+                self.mostrar_imagen_resultado(self.result_image)
+            else:
+                messagebox.showinfo("Umbral no aplicado", "No se aplicó umbral ya que se canceló la operación.")
+        else:
+            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
     def convertir_gris(self):
         print("hola")
     def histograma(self):
