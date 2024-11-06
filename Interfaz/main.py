@@ -217,10 +217,10 @@ class ImageEditorApp:
                 escalar_array = np.full(self.image_top_np.shape, valor_escalar, dtype=np.uint8)
                 
                 # Usar cv2.subtract para la resta escalar con recorte automático
-                resta_resultado = cv.multiply(self.image_top_np, escalar_array)
+                multi_resultado = cv.multiply(self.image_top_np, escalar_array)
                 
                 # Convertir el resultado de vuelta a imagen PIL y mostrarlo
-                self.result_image = Image.fromarray(resta_resultado)
+                self.result_image = Image.fromarray(multi_resultado)
                 self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
