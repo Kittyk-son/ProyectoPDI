@@ -228,8 +228,7 @@ class ImageEditorApp:
     def suma(self):
         if self.image_top is not None and self.image_bottom is not None:
             # Redimensionar la imagen inferior a las dimensiones de la superior
-            height_top, width_top = self.image_top_np.shape[:2]
-            self.image_bottom_np = self.redimensionar_imagen(self.image_bottom_np, width_top, height_top)
+            self.image_bottom_np=self.igualar_dimesiones(self.image_top_np,self.image_bottom_np)
             # Suma de imágenes
             suma_img = cv.add(self.image_top_np,self.image_bottom_np)
             self.result_image = Image.fromarray(suma_img)
@@ -254,8 +253,7 @@ class ImageEditorApp:
     def multiplicacion(self):
         if self.image_top is not None and self.image_bottom is not None:
             # Redimensionar la imagen inferior a las dimensiones de la superior
-            height_top, width_top = self.image_top_np.shape[:2]
-            self.image_bottom_np = self.redimensionar_imagen(self.image_bottom_np, width_top, height_top)
+            self.image_bottom_np = self.igualar_dimesiones(self.image_top_np,self.image_bottom_np)
             # Multiplicación de imágenes
             multiplicacion_img = cv.multiply(self.image_top_np,self.image_bottom_np)
             self.result_image = Image.fromarray(multiplicacion_img)
@@ -311,11 +309,8 @@ class ImageEditorApp:
             messagebox.showwarning("Advertencia", "Cargar ambas imágenes primero.")
 
     def not_logico(self):
-        if self.image_top is not None and self.image_bottom is not None:
-            # Redimensionar ambas imágenes a las dimensiones de la imagen superior
-            height_top, width_top = self.image_top_np.shape[:2]
-            self.image_bottom_np = self.redimensionar_imagen(self.image_bottom_np, width_top, height_top)
-            not_img = cv.bitwise_not(self.image_top_np,self.image_bottom_np)
+        if self.image_top is not None:
+            not_img = cv.bitwise_not(self.image_top_np)
             self.result_image = Image.fromarray(not_img)
             self.mostrar_imagen_resultado(self.result_image)
         else:
@@ -449,6 +444,14 @@ class ImageEditorApp:
                 img_2 = cv.resize(img_2, (columnas, filas))
         return img_2
 
+    def igualar_dimesiones(self,img_1, img_2):
+        if img_1.shape != img_2.shape:
+                dimensiones = img_1.shape
+                filas = dimensiones[0]
+                columnas = dimensiones[1]
+                img_2 = cv.resize(img_2, (columnas, filas))
+        return img_2
+
     def redimensionar_imagen(self, imagen, nuevo_ancho, nuevo_alto):
         return cv.resize(imagen, (nuevo_ancho, nuevo_alto), interpolation=cv.INTER_AREA)
 
@@ -459,14 +462,73 @@ class ImageEditorApp:
             self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+    def es_gris(self):
+        """
+        Determina si una imagen está en escala de grises.
+        
+        Args:
+            img: Imagen en formato numpy array (formato OpenCV)
+        
+        Returns:
+            bool: True si la imagen está en escala de grises, False si es a color o hay error
+        """
+        try:
+            # Verificar que la imagen no esté vacía
+            if self.image_top_np is None or self.image_top_np.size == 0:
+                print("Error: Imagen vacía o inválida")
+                return False
+                
+            # Obtener la forma (shape) de la imagen
+            if len(self.image_top_np.shape) == 2:
+                # Si la imagen tiene solo 2 dimensiones, es definitivamente gris
+                return True
+            elif len(self.image_top_np.shape) == 3:
+                # Si tiene 3 dimensiones, verificamos los canales
+                if self.image_top_np.shape[2] == 1:
+                    # Si solo tiene 1 canal, es gris
+                    return True
+                elif self.image_top_np.shape[2] == 3:
+                    # Si tiene 3 canales, verificamos si todos los canales son iguales
+                    # Separamos los canales
+                    b, g, r = cv.split(self.image_top_np)
+                    # Comparamos si todos los canales son iguales
+                    if (b == g).all() and (b == r).all():
+                        return True
+                    return False
+                else:
+                    print("Error: Formato de imagen no soportado")
+                    return False
+            else:
+                print("Error: Dimensiones de imagen no válidas")
+                return False
+                
+        except Exception as e:
+            print(f"Error al analizar la imagen: {str(e)}")
+            return False
+
 
     def histograma(self):
         if self.image_top is not None:
-            plt.hist(self.image_top_np.ravel(), bins=256, color='gray', alpha=0.7)
-            plt.title('Histograma de la Imagen')
-            plt.xlabel('Intensidad')
-            plt.ylabel('Número de píxeles')
-            plt.grid()
+            # Para hacer el espaciado uniforme en un rango de 0-255, que va de 3 en 3
+            bins = np.arange(0, 256, 3)
+            # Creamos la figura
+            fig, ax = plt.subplots() 
+            if self.es_gris():
+                # Histograma para escala de grises con un alineamiento
+                ax.hist(self.image_top_np.ravel(), bins=bins, color='gray')
+                ax.set_title('Histograma de la imagen en grises')
+            else:
+                # Histograma de los canales de color
+                # Extraer los canales de color 
+                canales = cv.split(self.image_top_np) # canales = [b, g, r]
+                color = ('b', 'g', 'r') # Para colorearlos
+                nombres = ('azul', 'verde', 'rojo')
+                for i, col in enumerate(color):
+                    # Agregamos al histograma los datos: ravel para volverlo lista de datos, alpha para trasparencia
+                    ax.hist(canales[i].ravel(), bins=bins, color=col, alpha=0.5, label=f'Canal {nombres[i]}')
+                ax.set_title('Histograma de la imagen en color')
+            ax.set_xlabel('Valor de intensidad del pixel')
+            ax.set_ylabel('Frecuencia')
             plt.show()
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
