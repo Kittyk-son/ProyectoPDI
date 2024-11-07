@@ -562,8 +562,8 @@ class ImageEditorApp:
         try:
             self.ventana_filtro = tk.Toplevel(self.root)
             self.ventana_filtro.title("Operaciones con Filtro")
-            options = [("Aplicar Ruido Sal y Pimienta", self.sal_y_pimienta),
-                    ("Aplicar Ruido Gaussiano", self.expansion),
+            options = [("Aplicar Ruido Sal y Pimienta", self.ruido_sal_y_pimienta),
+                    ("Aplicar Ruido Gaussiano", self.desplazamiento),
                     ("Aplicar Ruido Sal y Pimienta y Gausiano", self.contraccion),
                     ("Aplicar Filtro Moda", self.ecualizacion)]
             for (text, command) in options:
@@ -572,18 +572,103 @@ class ImageEditorApp:
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def sal_y_pimienta(self):
+    def ruido_sal_y_pimienta(self):
         try:
             self.ventana_sal = tk.Toplevel(self.root)
             self.ventana_sal.title("Operaciones con Filtro")
-            options = [("Aplicar Sal", self.and_logico),
-                    ("Aplicar Pimienta", self.expansion),
-                    ("Aplicar Sal y Pimienta", self.contraccion)]
+            options = [("Aplicar Sal", self.sal),
+                    ("Aplicar Pimienta", self.pimienta),
+                    ("Aplicar Sal y Pimienta", self.desplazamiento)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_sal, text=text, command=command)
                 button.pack(pady=5)
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def sal(self):
+        if self.image_top is not None:
+            cantidad = 0.05
+            conversion = False
+            # Copiar la imagen para no modificar la original
+            imagen = np.copy(self.image_top_np)
+                
+            # Manejar diferentes dimensiones de imagen
+            if len(imagen.shape) == 2:
+                # Imagen en escala de grises
+                pass
+            elif len(imagen.shape) == 3:
+                    # Imagen a color o grises (en tres canales) - convertir a YUV
+                imagen = cv.cvtColor(imagen, cv.COLOR_BGR2YUV)
+                conversion = True
+            else:
+                raise ValueError("Las dimensiones de la imagen no son válidas")
+                
+            # Obtener las dimensiones de trabajo
+            if conversion:
+                    altura, ancho = imagen[:,:,0].shape
+                    canal_trabajo = imagen[:,:,0]
+            else:
+                altura, ancho = imagen.shape
+                canal_trabajo = imagen
+                # Crear máscara de ruido
+                # Se hacen valores aleatorios entre 0, 1 y 2, para una máscara del tamaño de la imágen
+            mascara = np.random.choice([0, 1, 2], size=(altura, ancho), 
+                    p=[1 - cantidad, cantidad/2, cantidad/2])
+            # P guarda las probabilidades en que aparecen = [ 1 - cantidad (si cantidad es 5% sería 100% - 5% = 95% de probabilida de que aparezca 0), ... ]
+            # Aplicar ruido sal (255) y pimienta (0)
+            # Los 0 no aplican, son las que quedan igual
+            canal_trabajo[mascara == 1] = 255
+            if conversion:
+                imagen[:,:,0] = canal_trabajo
+                imagen = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
+            # Convertir el resultado de vuelta a imagen PIL y mostrarlo
+            self.result_image = Image.fromarray(imagen)
+            self.mostrar_imagen_resultado(self.result_image)
+        else:
+            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def pimienta(self):
+        if self.image_top is not None:
+            cantidad = 0.05
+            conversion = False
+            # Copiar la imagen para no modificar la original
+            imagen = np.copy(self.image_top_np)
+                
+            # Manejar diferentes dimensiones de imagen
+            if len(imagen.shape) == 2:
+                # Imagen en escala de grises
+                pass
+            elif len(imagen.shape) == 3:
+                    # Imagen a color o grises (en tres canales) - convertir a YUV
+                imagen = cv.cvtColor(imagen, cv.COLOR_BGR2YUV)
+                conversion = True
+            else:
+                raise ValueError("Las dimensiones de la imagen no son válidas")
+                
+            # Obtener las dimensiones de trabajo
+            if conversion:
+                    altura, ancho = imagen[:,:,0].shape
+                    canal_trabajo = imagen[:,:,0]
+            else:
+                altura, ancho = imagen.shape
+                canal_trabajo = imagen
+                # Crear máscara de ruido
+                # Se hacen valores aleatorios entre 0, 1 y 2, para una máscara del tamaño de la imágen
+            mascara = np.random.choice([0, 1, 2], size=(altura, ancho), 
+                    p=[1 - cantidad, cantidad/2, cantidad/2])
+            # P guarda las probabilidades en que aparecen = [ 1 - cantidad (si cantidad es 5% sería 100% - 5% = 95% de probabilida de que aparezca 0), ... ]
+            # Aplicar ruido sal (255) y pimienta (0)
+            # Los 0 no aplican, son las que quedan igual
+            canal_trabajo[mascara == 2] = 0
+            if conversion:
+                imagen[:,:,0] = canal_trabajo
+                imagen = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
+            # Convertir el resultado de vuelta a imagen PIL y mostrarlo
+            self.result_image = Image.fromarray(imagen)
+            self.mostrar_imagen_resultado(self.result_image)
+        else:
+            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+        
 
 if __name__ == "__main__":
     root = tk.Tk()
