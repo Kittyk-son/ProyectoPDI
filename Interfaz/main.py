@@ -40,7 +40,8 @@ class ImageEditorApp:
             ("Convertir a Niveles de Gris", self.convertir_gris),
             ("Histograma", self.histograma),
             ("Componentes RGB", self.componentes_rgb),
-            ("Ajustes de Brillo", self.operaciones_de_ajuste_de_brillo)
+            ("Ajustes de Brillo", self.operaciones_de_ajuste_de_brillo),
+            ("Filtros",self.operaciones_con_filtro)
         ]
 
         for (text, command) in self.buttons:
@@ -556,6 +557,20 @@ class ImageEditorApp:
             plt.show()
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def operaciones_con_filtro(self):
+        try:
+            self.ventana_brillo = tk.Toplevel(self.root)
+            self.ventana_brillo.title("Operaciones con Filtro")
+            options = [("Aplicar Ruido Sal y Pimienta", self.desplazamiento),
+                    ("Aplicar Ruido Gaussiano", self.expansion),
+                    ("Aplicar Ruido Sal y Pimienta y Gausiano", self.contraccion),
+                    ("Aplicar Filtro Moda", self.ecualizacion)]
+            for (text, command) in options:
+                button = tk.Button(self.ventana_brillo, text=text, command=command)
+                button.pack(pady=5)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
 if __name__ == "__main__":
     root = tk.Tk()
