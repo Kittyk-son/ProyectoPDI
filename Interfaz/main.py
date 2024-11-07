@@ -6,6 +6,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import math
 import funciones as fun
+from scipy import stats
 
 class ImageEditorApp:
     def __init__(self, root):
@@ -563,9 +564,8 @@ class ImageEditorApp:
             self.ventana_filtro = tk.Toplevel(self.root)
             self.ventana_filtro.title("Operaciones con Filtro")
             options = [("Aplicar Ruido Sal y Pimienta", self.ruido_sal_y_pimienta),
-                    ("Aplicar Ruido Gaussiano", self.desplazamiento),
-                    ("Aplicar Ruido Sal y Pimienta y Gausiano", self.contraccion),
-                    ("Aplicar Filtro Moda", self.ecualizacion)]
+                    ("Aplicar Ruido Gaussiano", self.ruido_gaussiano),
+                    ("Aplicar Filtro Moda", self.filtro_moda)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_filtro, text=text, command=command)
                 button.pack(pady=5)
@@ -578,7 +578,7 @@ class ImageEditorApp:
             self.ventana_sal.title("Operaciones con Filtro")
             options = [("Aplicar Sal", self.sal),
                     ("Aplicar Pimienta", self.pimienta),
-                    ("Aplicar Sal y Pimienta", self.desplazamiento)]
+                    ("Aplicar Sal y Pimienta", self.sal_y_pimienta)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_sal, text=text, command=command)
                 button.pack(pady=5)
@@ -668,6 +668,187 @@ class ImageEditorApp:
             self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def sal_y_pimienta(self):
+        if self.image_top is not None:
+            cantidad = 0.05
+            conversion = False
+            # Copiar la imagen para no modificar la original
+            imagen = np.copy(self.image_top_np)
+                
+            # Manejar diferentes dimensiones de imagen
+            if len(imagen.shape) == 2:
+                # Imagen en escala de grises
+                pass
+            elif len(imagen.shape) == 3:
+                    # Imagen a color o grises (en tres canales) - convertir a YUV
+                imagen = cv.cvtColor(imagen, cv.COLOR_BGR2YUV)
+                conversion = True
+            else:
+                raise ValueError("Las dimensiones de la imagen no son válidas")
+                
+            # Obtener las dimensiones de trabajo
+            if conversion:
+                    altura, ancho = imagen[:,:,0].shape
+                    canal_trabajo = imagen[:,:,0]
+            else:
+                altura, ancho = imagen.shape
+                canal_trabajo = imagen
+                # Crear máscara de ruido
+                # Se hacen valores aleatorios entre 0, 1 y 2, para una máscara del tamaño de la imágen
+            mascara = np.random.choice([0, 1, 2], size=(altura, ancho), 
+                    p=[1 - cantidad, cantidad/2, cantidad/2])
+            # P guarda las probabilidades en que aparecen = [ 1 - cantidad (si cantidad es 5% sería 100% - 5% = 95% de probabilida de que aparezca 0), ... ]
+            # Aplicar ruido sal (255) y pimienta (0)
+            # Los 0 no aplican, son las que quedan igual
+            canal_trabajo[mascara == 1] = 255
+            canal_trabajo[mascara == 2] = 0
+            if conversion:
+                imagen[:,:,0] = canal_trabajo
+                imagen = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
+            # Convertir el resultado de vuelta a imagen PIL y mostrarlo
+            self.result_image = Image.fromarray(imagen)
+            self.mostrar_imagen_resultado(self.result_image)
+        else:
+            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def ruido_gaussiano(self):
+        """
+        Agrega ruido gaussiano a una imagen
+        
+        Args:
+            img: Imagen en formato numpy array (OpenCV)
+            media: el valor promedio de la distribución (default 0)
+            sigma: Proporción de píxeles que serán afectados (default 10%)
+        
+        Returns:
+            Imagen con ruido sal y pimienta
+        """
+        if self.image_top is not None:
+            conversion = False
+            media=0
+            sigma=simpledialog.askinteger("Establecer Sigma", "Introduce el valor continuo para multiplicar (0 a 100):")
+            # Copiar la imagen para no modificar la original
+            imagen = np.copy(self.image_top_np)
+            
+            # Manejar diferentes dimensiones de imagen
+            if len(imagen.shape) == 2:
+                # Imagen en escala de grises
+                pass
+            elif len(imagen.shape) == 3:
+                # Imagen a color o grises (en tres canales) - convertir a YUV
+                imagen = cv.cvtColor(imagen, cv.COLOR_BGR2YUV)
+                conversion = True
+            else:
+                raise ValueError("Las dimensiones de la imagen no son válidas")
+            
+            # Obtener las dimensiones de trabajo
+            if conversion:
+                canal_trabajo = imagen[:,:,0]
+            else:
+                canal_trabajo = imagen
+            
+            # Aplicamos el ruido gaussiano
+            gauss = np.zeros_like(canal_trabajo, dtype=np.uint8)
+            cv.randn(gauss, media, sigma)
+            canal_trabajo = cv.add(canal_trabajo, gauss)
+            
+            # Si estamos trabajando en YUV, actualizar el canal Y y convertir de vuelta a BGR
+            if conversion:
+                imagen[:,:,0] = canal_trabajo
+                imagen = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
+            # Convertir el resultado de vuelta a imagen PIL y mostrarlo
+            self.result_image = Image.fromarray(imagen)
+            self.mostrar_imagen_resultado(self.result_image)
+        else:
+            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def filtro_moda(self):
+        """
+        Aplica el filtro moda a una imagen
+        
+        Args:
+            img: Imagen en formato numpy array (OpenCV)
+            Kerne_size: tamaño de un lado del cuadro del cual obtendremos la información para el filtro (default 3)
+        
+        Returns:
+            Imagen con ruido sal y pimienta
+        """
+        if self.image_top is not None:
+            kernel_size=simpledialog.askinteger("Establecer Kernel", "Introduce el valor continuo para multiplicar (0 a 4):")
+            conversion = False
+            # Copiar la imagen para no modificar la original
+            imagen = np.copy(self.image_top_np)
+            
+            # Manejar diferentes dimensiones de imagen
+            if len(imagen.shape) == 2:
+                # Imagen en escala de grises
+                pass
+            elif len(imagen.shape) == 3:
+                # Imagen a color o grises (en tres canales) - convertir a YUV
+                imagen = cv.cvtColor(imagen, cv.COLOR_BGR2YUV)
+                conversion = True
+            else:
+                raise ValueError("Las dimensiones de la imagen no son válidas")
+            
+            # Obtener las dimensiones de trabajo
+            if conversion:
+                altura, ancho = imagen[:,:,0].shape
+                canal_trabajo = imagen[:,:,0]
+            else:
+                altura, ancho = imagen.shape
+                canal_trabajo = imagen
+
+            # Creamos una copia para trabajar y evitar que los resultados anteriores afecten al siguiente
+            resultado = np.copy(canal_trabajo) 
+            
+            # Cuantos pixeles necesitamos en cada lado
+            pad = kernel_size // 2
+            # Se agrega un borde extra para poder trabajar las orillas, en este caso refleja los pixeles.
+            imagen_padded = np.pad(canal_trabajo, pad, mode = 'reflect')
+            ''' Por ejemplo:
+                De esto:
+                1 2 3
+                4 5 6
+                7 8 9
+
+                A esto:
+                5 4 5 6 5
+                2 1 2 3 2
+                5 4 5 6 5
+                8 7 8 9 8
+                5 4 5 6 5
+            '''
+            resultado = np.zeros((altura, ancho), dtype=imagen_padded.dtype)
+            
+            # Muy lento
+            # Crear vistas de todas las ventanas de una vez, para crear vistas eficientes de las ventanas
+            windows = np.lib.stride_tricks.sliding_window_view(
+                imagen_padded, 
+                (kernel_size, kernel_size)
+            )
+            
+            # Calcular la moda para cada ventana
+            for i in range(altura):
+                print(f'Fila = {i} de {altura}')
+                for j in range(ancho):
+                    # Obtienes la moda, utiliza keepdims para añadir compatibilidado con versiones recientes de scipy
+                    resultado[i,j] = stats.mode(windows[i,j].flatten(), keepdims=True)[0][0] # Sólo queremos el primer valor
+
+
+            
+            # Si estamos trabajando en YUV, actualizar el canal Y y convertir de vuelta a BGR
+            if conversion:
+                imagen[:,:,0] = resultado
+                imagen = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
+                self.result_image = Image.fromarray(imagen)
+                self.mostrar_imagen_resultado(self.result_image)
+            
+            self.result_image = Image.fromarray(resultado)
+            self.mostrar_imagen_resultado(self.result_image)
+        else:
+            messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
         
 
 if __name__ == "__main__":
