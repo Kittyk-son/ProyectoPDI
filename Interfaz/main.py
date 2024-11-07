@@ -560,14 +560,27 @@ class ImageEditorApp:
 
     def operaciones_con_filtro(self):
         try:
-            self.ventana_brillo = tk.Toplevel(self.root)
-            self.ventana_brillo.title("Operaciones con Filtro")
-            options = [("Aplicar Ruido Sal y Pimienta", self.desplazamiento),
+            self.ventana_filtro = tk.Toplevel(self.root)
+            self.ventana_filtro.title("Operaciones con Filtro")
+            options = [("Aplicar Ruido Sal y Pimienta", self.sal_y_pimienta),
                     ("Aplicar Ruido Gaussiano", self.expansion),
                     ("Aplicar Ruido Sal y Pimienta y Gausiano", self.contraccion),
                     ("Aplicar Filtro Moda", self.ecualizacion)]
             for (text, command) in options:
-                button = tk.Button(self.ventana_brillo, text=text, command=command)
+                button = tk.Button(self.ventana_filtro, text=text, command=command)
+                button.pack(pady=5)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def sal_y_pimienta(self):
+        try:
+            self.ventana_sal = tk.Toplevel(self.root)
+            self.ventana_sal.title("Operaciones con Filtro")
+            options = [("Aplicar Sal", self.and_logico),
+                    ("Aplicar Pimienta", self.expansion),
+                    ("Aplicar Sal y Pimienta", self.contraccion)]
+            for (text, command) in options:
+                button = tk.Button(self.ventana_sal, text=text, command=command)
                 button.pack(pady=5)
         except Exception as e:
             messagebox.showerror("Error", str(e))
