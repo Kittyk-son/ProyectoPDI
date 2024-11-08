@@ -830,7 +830,7 @@ class ImageEditorApp:
             
             # Calcular la moda para cada ventana
             for i in range(altura):
-                print(f'Fila = {i} de {altura}')
+                #print(f'Fila = {i} de {altura}')
                 for j in range(ancho):
                     # Obtienes la moda, utiliza keepdims para añadir compatibilidado con versiones recientes de scipy
                     resultado[i,j] = stats.mode(windows[i,j].flatten(), keepdims=True)[0][0] # Sólo queremos el primer valor
