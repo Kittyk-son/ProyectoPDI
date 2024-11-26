@@ -34,7 +34,7 @@ class ImageEditorApp:
 
         # Barra lateral izquierda
         self.sidebar = tk.Frame(self.root, width=200, bg=self.bg_color)
-        self.sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=20, pady=20)
+        self.sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
         self.buttons = [
             ("Operaciones Aritméticas", self.operaciones_aritmeticas),
             ("Operaciones Lógicas", self.operaciones_logicas),
@@ -43,11 +43,12 @@ class ImageEditorApp:
             ("Histograma", self.histograma),
             ("Componentes RGB", self.componentes_rgb),
             ("Ajustes de Brillo", self.operaciones_de_ajuste_de_brillo),
-            ("Filtros",self.operaciones_con_filtro)
+            ("Filtros Paso Bajas",self.operaciones_con_filtro_paso_bajas),
+            ("Filtros Paso Altas",self.operaciones_con_filtro)
         ]
 
         for (text, command) in self.buttons:
-            button = tk.Button(self.sidebar, text=text, command=command, width=20, height=3,
+            button = tk.Button(self.sidebar, text=text, command=command, width=20, height=2,
                                bg=self.button_color, fg="white", font=("Arial", 12, "bold"),
                                activebackground=self.button_hover_color)
             button.pack(pady=10)
@@ -562,7 +563,7 @@ class ImageEditorApp:
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
-    def operaciones_con_filtro(self):
+    def operaciones_con_filtro_paso_bajas(self):
         try:
             self.ventana_filtro = tk.Toplevel(self.root)
             self.ventana_filtro.title("Operaciones con Filtro")
@@ -851,6 +852,19 @@ class ImageEditorApp:
             self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def operaciones_con_filtro(self):
+        try:
+            self.ventana_filtro = tk.Toplevel(self.root)
+            self.ventana_filtro.title("Operaciones con Filtro")
+            options = [("Aplicar Ruido Sal y Pimienta", self.ruido_sal_y_pimienta),
+                    ("Aplicar Ruido Gaussiano", self.ruido_gaussiano),
+                    ("Aplicar Filtro Moda", self.filtro_moda)]
+            for (text, command) in options:
+                button = tk.Button(self.ventana_filtro, text=text, command=command)
+                button.pack(pady=5)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
         
 
