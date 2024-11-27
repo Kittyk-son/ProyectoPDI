@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import math
 import funciones as fun
 from scipy import stats
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from scipy import ndimage
 
 class ImageEditorApp:
     def __init__(self, root):
@@ -565,7 +567,8 @@ class ImageEditorApp:
             self.ventana_filtro.title("Operaciones con Filtro")
             options = [("Aplicar Ruido Sal y Pimienta", self.ruido_sal_y_pimienta),
                     ("Aplicar Ruido Gaussiano", self.ruido_gaussiano),
-                    ("Aplicar Filtro Moda", self.filtro_moda)]
+                    ("Aplicar Filtro Moda", self.filtro_moda),
+                    ("Aplicar Filtro Robert",self.filtro_robert)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_filtro, text=text, command=command)
                 button.pack(pady=5)
@@ -848,6 +851,76 @@ class ImageEditorApp:
             self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    def conversion_a_YUV(self,img):
+        """
+        Convierte una imagen a YUV para poder manejar la luminancia por separado.
+
+        Args: 
+            img: imagen en BGR y formato numpy array (OpenCV)
+
+        Returns:
+            imagen: imagen convertida a YUV
+            canal_trabajo: luminancia
+            conversion: verificación, si se realizó la conversión
+            altura: altura de la imagen
+            ancho: ancho de la imagen
+        """
+        conversion = False
+        # Copiar la imagen para no modificar la original
+        imagen = np.copy(img)
+        
+        # Manejar diferentes dimensiones de imagen
+        if len(imagen.shape) == 2:
+            # Imagen en escala de grises
+            pass
+        elif len(imagen.shape) == 3:
+            # Imagen a color o grises (en tres canales) - convertir a YUV
+            imagen = cv.cvtColor(imagen, cv.COLOR_BGR2YUV)
+            conversion = True
+        else:
+            raise ValueError("Las dimensiones de la imagen no son válidas")
+        
+        # Obtener las dimensiones de trabajo
+        if conversion:
+            altura, ancho = imagen[:,:,0].shape
+            canal_trabajo = imagen[:,:,0]
+        else:
+            altura, ancho = imagen.shape
+            canal_trabajo = imagen
+
+        return imagen, canal_trabajo, conversion, altura, ancho
+
+    def filtro_robert(self):
+        """
+        Aplica el filtro Robert a una imagen, de manera que se marcan los bordes.
+        """
+        imagen = np.copy(self.image_top_np)
+        gris = cv.cvtColor(imagen, cv.COLOR_BGR2GRAY)
+        imagen, canal_trabajo, conversion, _, _ = self.conversion_a_YUV(gris)
+
+        roberts_cross_v = np.array([[1, 0],
+                                    [0, -1]])
+        roberts_cross_h = np.array([[0, 1],
+                                    [-1, 0]])
+
+        canal_float = canal_trabajo.astype('float64')
+        canal_float /= 255.0
+
+        vertical = ndimage.convolve(canal_float, roberts_cross_v)
+        horizontal = ndimage.convolve(canal_float, roberts_cross_h)
+
+        edged_img = np.sqrt(np.square(horizontal) + np.square(vertical))
+        edged_img *= 255
+        resultado = np.clip(edged_img, 0, 255).astype(np.uint8)
+
+        if conversion:
+            imagen[:, :, 0] = resultado
+            resultado = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
+
+        self.result_image = Image.fromarray(resultado)
+        self.mostrar_imagen_resultado(self.result_image)
+
 
         
 

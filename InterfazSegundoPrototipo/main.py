@@ -852,7 +852,7 @@ class ImageEditorApp:
             self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
-    #Hola Johny
+    
     def operaciones_con_filtro(self):
         try:
             self.ventana_filtro = tk.Toplevel(self.root)
