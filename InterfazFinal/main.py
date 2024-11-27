@@ -568,7 +568,8 @@ class ImageEditorApp:
             options = [("Aplicar Ruido Sal y Pimienta", self.ruido_sal_y_pimienta),
                     ("Aplicar Ruido Gaussiano", self.ruido_gaussiano),
                     ("Aplicar Filtro Moda", self.filtro_moda),
-                    ("Aplicar Filtro Robert",self.filtro_robert)]
+                    ("Aplicar Filtro Robert",self.filtro_robert),
+                    ("Aplicar Multiumbralizado",self.multi_umbralizado)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_filtro, text=text, command=command)
                 button.pack(pady=5)
@@ -919,6 +920,18 @@ class ImageEditorApp:
             resultado = cv.cvtColor(imagen, cv.COLOR_YUV2BGR)
 
         self.result_image = Image.fromarray(resultado)
+        self.mostrar_imagen_resultado(self.result_image)
+
+    def multi_umbralizado(self):
+        T1 = simpledialog.askinteger("Primer umbral", "Introduce el valor continuo (0 a 255):")
+        T2 = simpledialog.askinteger("Segundo umbral", "Introduce el valor continuo (0 a 255):")
+        imagen = np.copy(self.image_top_np)
+        gris = cv.cvtColor(imagen, cv.COLOR_BGR2GRAY)
+        imagen_multi_umbrales = np.zeros_like(gris)
+        imagen_multi_umbrales[gris < T1] = 0
+        imagen_multi_umbrales[(gris >= T1) & (gris < T2)] = 127
+        imagen_multi_umbrales[gris >= T2] = 255
+        self.result_image = Image.fromarray(imagen_multi_umbrales)
         self.mostrar_imagen_resultado(self.result_image)
 
 
