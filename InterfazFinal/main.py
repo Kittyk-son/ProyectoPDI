@@ -940,10 +940,10 @@ class ImageEditorApp:
         imagen = np.copy(self.image_top_np)
 
         # Separar los canales de la imagen
-        canal_azul, canal_verde, canal_rojo = cv.split(imagen)
+        canal_rojo, canal_verde, canal_azul = cv.split(imagen)
 
         # Umbralizar los canales azul y verde
-        _, umbral_azul = cv.threshold(canal_rojo, 10, 255, cv.THRESH_BINARY)
+        _, umbral_azul = cv.threshold(canal_azul, 10, 255, cv.THRESH_BINARY)
         _, umbral_verde = cv.threshold(canal_verde, 70, 255, cv.THRESH_BINARY)
 
         # XOR entre los canales umbralizados
