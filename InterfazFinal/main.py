@@ -99,7 +99,7 @@ class ImageEditorApp:
             img_np = np.array(img_pil)
             
             # Reescalar la imagen a un tamaño fijo (300x300) usando OpenCV
-            img_resized_np = cv.resize(img_np, (300, 300), interpolation=cv.INTER_LINEAR)
+            img_resized_np = cv.resize(img_np, (600, 800), interpolation=cv.INTER_LINEAR)
             
             # Convertir el arreglo NumPy reescalado nuevamente a formato PIL
             img_resized_pil = Image.fromarray(img_resized_np)
@@ -943,8 +943,8 @@ class ImageEditorApp:
         canal_azul, canal_verde, canal_rojo = cv.split(imagen)
 
         # Umbralizar los canales azul y verde
-        _, umbral_azul = cv.threshold(canal_azul, 10, 255, cv.THRESH_BINARY)
-        _, umbral_verde = cv.threshold(canal_verde, 22, 255, cv.THRESH_BINARY)
+        _, umbral_azul = cv.threshold(canal_rojo, 10, 255, cv.THRESH_BINARY)
+        _, umbral_verde = cv.threshold(canal_verde, 70, 255, cv.THRESH_BINARY)
 
         # XOR entre los canales umbralizados
         sin_fondo = cv.bitwise_xor(umbral_azul, umbral_verde)
@@ -955,7 +955,7 @@ class ImageEditorApp:
 
         # Aplicar erosión para reducir ruido adicional
         elemento_estructurante = np.ones((3, 3), np.uint8)
-        sin_ruido = cv.erode(normalizada, elemento_estructurante, iterations=2)
+        sin_ruido = cv.erode(normalizada, elemento_estructurante)
 
         # Obtener el contorno
         contorno = cv.bitwise_xor(normalizada, sin_ruido)
