@@ -976,13 +976,7 @@ class ImageEditorApp:
         # Convertir a formato PIL para mostrar o guardar
         self.result_image = Image.fromarray(resultado)
         self.mostrar_imagen_resultado(self.result_image)
-
-
-
-
-
-
-        
+ 
 
 if __name__ == "__main__":
     root = tk.Tk()
