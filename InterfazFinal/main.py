@@ -570,7 +570,8 @@ class ImageEditorApp:
                     ("Aplicar Filtro Moda", self.filtro_moda),
                     ("Aplicar Filtro Robert",self.filtro_robert),
                     ("Aplicar Multiumbralizado",self.multi_umbralizado),
-                    ("Segmentacion",self.segmentacion)]
+                    ("Segmentacion",self.segmentacion),
+                    ("Segmentacion_Parcial",self.segmentacion_parcial)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_filtro, text=text, command=command)
                 button.pack(pady=5)
@@ -973,6 +974,48 @@ class ImageEditorApp:
         # Combinar la imagen binarizada con el rectángulo final
         resultado = cv.multiply(binarizada, rectangulote)
 
+        # Convertir a formato PIL para mostrar o guardar
+        self.result_image = Image.fromarray(resultado)
+        self.mostrar_imagen_resultado(self.result_image)
+
+    def segmentacion_parcial(self):
+        # Crear una copia de la imagen
+        imagen = np.copy(self.image_top_np)
+
+        # Separar los canales de la imagen
+        canal_rojo, canal_verde, canal_azul = cv.split(imagen)
+
+        # Umbralizar los canales azul y verde
+        _, umbral_azul = cv.threshold(canal_azul, 10, 255, cv.THRESH_BINARY)
+        _, umbral_verde = cv.threshold(canal_verde, 70, 255, cv.THRESH_BINARY)
+
+        # XOR entre los canales umbralizados
+        sin_fondo = cv.bitwise_xor(umbral_azul, umbral_verde)
+
+        # Aplicar filtro de mediana para reducir ruido
+        normalizada = cv.medianBlur(sin_fondo, 3)
+        normalizada = cv.medianBlur(normalizada, 3)
+
+        # Aplicar erosión para reducir ruido adicional
+        elemento_estructurante = np.ones((3, 3), np.uint8)
+        sin_ruido = cv.erode(normalizada, elemento_estructurante)
+
+        # Obtener el contorno
+        contorno = cv.bitwise_xor(normalizada, sin_ruido)
+
+        # Dilatar el contorno para engrosarlo
+        aumento = cv.dilate(contorno, elemento_estructurante, iterations=5)
+
+        # Generar un "rectángulo" dilatado y erosionado
+        rectangulo = cv.erode(aumento, elemento_estructurante, iterations=17)
+        rectangulote = cv.dilate(rectangulo, elemento_estructurante, iterations=25)
+
+        parcial = cv.bitwise_and(contorno,rectangulote)
+        parcial_color = cv.cvtColor(parcial, cv.COLOR_GRAY2BGR)
+        canales_rojo, canales_verde, canales_azul = cv.split(parcial_color)
+        rosa = cv.bitwise_not(canales_rojo)
+        rosa_color = cv.cvtColor(rosa, cv.COLOR_GRAY2BGR)
+        resultado = cv.bitwise_and(imagen,rosa_color)
         # Convertir a formato PIL para mostrar o guardar
         self.result_image = Image.fromarray(resultado)
         self.mostrar_imagen_resultado(self.result_image)
