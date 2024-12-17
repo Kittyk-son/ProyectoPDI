@@ -9,6 +9,7 @@ import funciones as fun
 from scipy import stats
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from scipy import ndimage
+import os
 
 class ImageEditorApp:
     def __init__(self, root):
@@ -44,12 +45,13 @@ class ImageEditorApp:
             ("Histograma", self.histograma),
             ("Componentes RGB", self.componentes_rgb),
             ("Ajustes de Brillo", self.operaciones_de_ajuste_de_brillo),
-            ("Filtros",self.operaciones_con_filtro)
+            ("Filtros",self.operaciones_con_filtro),
+            ("Segmentacion",self.segmentados)
         ]
 
         for (text, command) in self.buttons:
-            button = tk.Button(self.sidebar, text=text, command=command, width=20, height=3,
-                               bg=self.button_color, fg="white", font=("Arial", 12, "bold"),
+            button = tk.Button(self.sidebar, text=text, command=command, width=20, height=2,
+                               bg=self.button_color, fg="white", font=("Arial", 14, "bold"),
                                activebackground=self.button_hover_color)
             button.pack(pady=10)
 
@@ -80,7 +82,7 @@ class ImageEditorApp:
         self.result_label.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
         self.save_button = tk.Button(self.right_area, text="Guardar Imagen", command=self.save_image_result,
                                      bg=self.button_color, fg="white", font=("Arial", 12, "bold"))
-        self.save_button.pack(side=tk.BOTTOM, padx=10, pady=10)
+        self.save_button.pack(side=tk.TOP, padx=10, pady=10)
         self.save_button.config(state=tk.DISABLED)
 
         # Variables de imágenes
@@ -100,9 +102,9 @@ class ImageEditorApp:
             
             # Reescalar la imagen a un tamaño fijo (300x300) usando OpenCV
             img_resized_np = cv.resize(img_np, (600, 800), interpolation=cv.INTER_LINEAR)
-            
+            img_resized_np3 = cv.resize(img_np, (300, 300), interpolation=cv.INTER_LINEAR)
             # Convertir el arreglo NumPy reescalado nuevamente a formato PIL
-            img_resized_pil = Image.fromarray(img_resized_np)
+            img_resized_pil = Image.fromarray(img_resized_np3)
 
             # Almacenar la imagen redimensionada tanto en formato PIL como en formato NumPy
             self.image_top_pil = img_resized_pil
@@ -126,12 +128,12 @@ class ImageEditorApp:
             img_np = np.array(img_pil)
             
             # Reescalar la imagen a un tamaño fijo (300x300) usando OpenCV
-            img_resized_np = cv.resize(img_np, (300, 300), interpolation=cv.INTER_LINEAR)
-            
-            # Convertir el arreglo NumPy redimensionado de nuevo a formato PIL
-            img_resized_pil = Image.fromarray(img_resized_np)
+            img_resized_np = cv.resize(img_np, (600, 800), interpolation=cv.INTER_LINEAR)
+            img_resized_np3 = cv.resize(img_np, (300, 300), interpolation=cv.INTER_LINEAR)
+            # Convertir el arreglo NumPy reescalado nuevamente a formato PIL
+            img_resized_pil = Image.fromarray(img_resized_np3)
 
-            # Almacenar la imagen redimensionada en formato PIL y NumPy
+            # Almacenar la imagen redimensionada tanto en formato PIL como en formato NumPy
             self.image_bottom_pil = img_resized_pil
             self.image_bottom_np = img_resized_np
             
@@ -150,16 +152,19 @@ class ImageEditorApp:
                 messagebox.showinfo("Guardar Imagen", f"Imagen guardada en {file_path}.")
 
     def mostrar_imagen_resultado(self, imagen):
-
+        # Redimensionar la imagen al tamaño deseado (600x700)
+        imagen_redimensionada = imagen.resize((600, 600), Image.Resampling.LANCZOS)
+        
         # Convertir la imagen redimensionada a un formato compatible con Tkinter
-        result_img_display = ImageTk.PhotoImage(imagen)
-
+        result_img_display = ImageTk.PhotoImage(imagen_redimensionada)
+        
         # Mostrar la imagen en el área de resultados (label o canvas en la parte derecha)
         self.result_label.config(image=result_img_display)
         self.result_label.image = result_img_display  # Guardar referencia para evitar que se recolecte por el garbage collector
-
+        
         # Habilitar el botón de guardar si no estaba habilitado
         self.save_button.config(state=tk.NORMAL)
+
     
     def operaciones_aritmeticas(self):
         try:
@@ -259,7 +264,7 @@ class ImageEditorApp:
             # Redimensionar la imagen inferior a las dimensiones de la superior
             self.image_bottom_np = self.igualar_dimesiones(self.image_top_np,self.image_bottom_np)
             # Multiplicación de imágenes
-            multiplicacion_img = cv.multiply(self.image_top_np,self.image_bottom_np)
+            multiplicacion_img = cv.multiply(self.image_top_np,self.image_bottom_np, scale=1.0/255.0)
             self.result_image = Image.fromarray(multiplicacion_img)
             self.mostrar_imagen_resultado(self.result_image)
         else:
@@ -358,36 +363,36 @@ class ImageEditorApp:
     # Ajustes de brillo aplicados directamente a self.image_top_np
     def contraccion(self):
         if self.image_top_np is not None:
-            self.image_top_np = self.ajustar_histograma_contraccion(self.image_top_np)
-            self.mostrar_imagen_resultado(Image.fromarray(self.image_top_np))
+            new = self.ajustar_histograma_contraccion(self.image_top_np)
+            self.mostrar_imagen_resultado(Image.fromarray(new))
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
     def desplazamiento(self):
         if self.image_top_np is not None:
-            self.image_top_np = self.ajustar_histograma_desplazamiento(self.image_top_np)
-            self.mostrar_imagen_resultado(Image.fromarray(self.image_top_np))
+            new = self.ajustar_histograma_desplazamiento(self.image_top_np)
+            self.mostrar_imagen_resultado(Image.fromarray(new))
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
     def expansion(self):
         if self.image_top_np is not None:
-            self.image_top_np = self.ajustar_histograma_expansion(self.image_top_np)
-            self.mostrar_imagen_resultado(Image.fromarray(self.image_top_np))
+            new = self.ajustar_histograma_expansion(self.image_top_np)
+            self.mostrar_imagen_resultado(Image.fromarray(new))
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
     def ecualizacion(self):
         if self.image_top_np is not None:
-            self.image_top_np = self.ajustar_histograma_ecualizacion(self.image_top_np)
-            self.mostrar_imagen_resultado(Image.fromarray(self.image_top_np))
+            new = self.ajustar_histograma_ecualizacion(self.image_top_np)
+            self.mostrar_imagen_resultado(Image.fromarray(new))
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
     def ecualizacion_exp(self):
         if self.image_top_np is not None:
-            self.image_top_np = self.ajustar_histograma_ecualizacion_exp(self.image_top_np)
-            self.mostrar_imagen_resultado(Image.fromarray(self.image_top_np))
+            new = self.ajustar_histograma_ecualizacion_exp(self.image_top_np)
+            self.mostrar_imagen_resultado(Image.fromarray(new))
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
 
@@ -435,8 +440,8 @@ class ImageEditorApp:
         mapa = np.zeros(256, dtype=np.float32)
         for i, Pg_g in enumerate(lista_frec_acumulada):
             Pg_g = min(Pg_g, 1 - epsilon)
-            mapa[i] = G_MIN - (1 / ALFA) * math.log(1 - Pg_g)
-
+            # Usar epsilon para evitar valores cercanos a 0
+            mapa[i] = G_MIN - (1 / ALFA) * math.log(max(1 - Pg_g, epsilon))
         ecualizacion = mapa[img]
         return np.clip(ecualizacion, 0, 255).astype(np.uint8)
 
@@ -466,6 +471,8 @@ class ImageEditorApp:
             self.mostrar_imagen_resultado(self.result_image)
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
+    
     def es_gris(self):
         """
         Determina si una imagen está en escala de grises.
@@ -539,7 +546,9 @@ class ImageEditorApp:
 
     def componentes_rgb(self):
         if self.image_top is not None:
+            # Dividir la imagen en sus canales R, G, B
             r, g, b = cv.split(self.image_top_np)
+            
             # Mostrar componentes
             plt.figure(figsize=(12, 4))
             plt.subplot(1, 3, 1)
@@ -558,8 +567,23 @@ class ImageEditorApp:
             plt.axis('off')
 
             plt.show()
+
+            # Preguntar al usuario si desea guardar los canales
+            respuesta = messagebox.askyesno("Guardar canales", "¿Desea guardar los canales como imágenes?")
+            if respuesta:
+                # Seleccionar carpeta para guardar los archivos
+                carpeta = filedialog.askdirectory(title="Seleccionar carpeta para guardar los canales")
+                if carpeta:
+                    # Guardar cada canal como imagen PNG
+                    cv.imwrite(os.path.join(carpeta, "canal_rojo.png"), r)
+                    cv.imwrite(os.path.join(carpeta, "canal_verde.png"), g)
+                    cv.imwrite(os.path.join(carpeta, "canal_azul.png"), b)
+                    messagebox.showinfo("Éxito", "Los canales se han guardado correctamente.")
+                else:
+                    messagebox.showwarning("Cancelado", "No se seleccionó ninguna carpeta.")
         else:
             messagebox.showwarning("Advertencia", "Cargar una imagen primero.")
+
 
     def operaciones_con_filtro(self):
         try:
@@ -569,9 +593,9 @@ class ImageEditorApp:
                     ("Aplicar Ruido Gaussiano", self.ruido_gaussiano),
                     ("Aplicar Filtro Moda", self.filtro_moda),
                     ("Aplicar Filtro Robert",self.filtro_robert),
-                    ("Aplicar Multiumbralizado",self.multi_umbralizado),
-                    ("Segmentacion",self.segmentacion),
-                    ("Segmentacion_Parcial",self.segmentacion_parcial)]
+                    ("Aplicar Filtro Maximo",self.filtro_maximo),
+                    ("Aplicar Filtro Minimo",self.filtro_minimo),
+                    ("Aplicar Multiumbralizado",self.multi_umbralizado)]
             for (text, command) in options:
                 button = tk.Button(self.ventana_filtro, text=text, command=command)
                 button.pack(pady=5)
@@ -593,7 +617,7 @@ class ImageEditorApp:
 
     def sal(self):
         if self.image_top is not None:
-            cantidad = 0.05
+            cantidad = simpledialog.askfloat("Establecer porcentaje", "Introduce el valor de (0 a 1):")
             conversion = False
             # Copiar la imagen para no modificar la original
             imagen = np.copy(self.image_top_np)
@@ -635,7 +659,7 @@ class ImageEditorApp:
 
     def pimienta(self):
         if self.image_top is not None:
-            cantidad = 0.05
+            cantidad = simpledialog.askfloat("Establecer porcentaje", "Introduce el valor de (0 a 1):")
             conversion = False
             # Copiar la imagen para no modificar la original
             imagen = np.copy(self.image_top_np)
@@ -677,7 +701,7 @@ class ImageEditorApp:
 
     def sal_y_pimienta(self):
         if self.image_top is not None:
-            cantidad = 0.05
+            cantidad = simpledialog.askfloat("Establecer porcentaje", "Introduce el valor de (0 a 1):")
             conversion = False
             # Copiar la imagen para no modificar la original
             imagen = np.copy(self.image_top_np)
@@ -733,7 +757,7 @@ class ImageEditorApp:
         if self.image_top is not None:
             conversion = False
             media=0
-            sigma=simpledialog.askinteger("Establecer Sigma", "Introduce el valor continuo para multiplicar (0 a 100):")
+            sigma=simpledialog.askinteger("Establecer Sigma", "Introduce el valor continuo (0 a 100):")
             # Copiar la imagen para no modificar la original
             imagen = np.copy(self.image_top_np)
             
@@ -924,6 +948,95 @@ class ImageEditorApp:
         self.result_image = Image.fromarray(resultado)
         self.mostrar_imagen_resultado(self.result_image)
 
+    def filtro_maximo_manual(self,imagen, kernel_size=3):
+        """
+        Aplica un filtro máximo a la imagen sin usar cv.dilate.
+        
+        Args:
+            imagen: np.array, imagen de entrada (puede ser en escala de grises o un solo canal).
+            kernel_size: int, tamaño del kernel (debe ser impar, por ejemplo, 3, 5, 7).
+        
+        Returns:
+            np.array: Imagen filtrada con el filtro máximo.
+        """
+        # Verificar que el kernel_size sea impar
+        if kernel_size % 2 == 0:
+            raise ValueError("El tamaño del kernel debe ser un número impar.")
+        
+        # Dimensiones de la imagen
+        altura, ancho, canales = imagen.shape
+        
+        # Calcular el radio del kernel
+        radio = kernel_size // 2
+        
+        # Crear una copia de la imagen para la salida
+        imagen_filtrada = np.zeros_like(imagen)
+        
+        # Aplicar filtro máximo
+        for i in range(altura):
+            for j in range(ancho):
+                # Extraer ventana local considerando los bordes
+                x_min = max(0, i - radio)
+                x_max = min(altura, i + radio + 1)
+                y_min = max(0, j - radio)
+                y_max = min(ancho, j + radio + 1)
+                
+                # Calcular el máximo en la ventana local
+                ventana = imagen[x_min:x_max, y_min:y_max]
+                imagen_filtrada[i, j] = np.max(ventana)
+        
+        return imagen_filtrada
+    
+    def filtro_maximo(self):
+        resultado = self.filtro_maximo_manual(self.image_top_np,3)
+        self.result_image = Image.fromarray(resultado)
+        self.mostrar_imagen_resultado(self.result_image)
+
+    def filtro_minimo_manual(self,imagen, kernel_size=3):
+        """
+        Aplica un filtro mínimo a la imagen sin usar cv.erode.
+        
+        Args:
+            imagen: np.array, imagen de entrada (puede ser en escala de grises o un solo canal).
+            kernel_size: int, tamaño del kernel (debe ser impar, por ejemplo, 3, 5, 7).
+        
+        Returns:
+            np.array: Imagen filtrada con el filtro mínimo.
+        """
+        # Verificar que el kernel_size sea impar
+        if kernel_size % 2 == 0:
+            raise ValueError("El tamaño del kernel debe ser un número impar.")
+        
+        # Dimensiones de la imagen
+        altura, ancho, canales = imagen.shape
+        
+        # Calcular el radio del kernel
+        radio = kernel_size // 2
+        
+        # Crear una copia de la imagen para la salida
+        imagen_filtrada = np.zeros_like(imagen)
+        
+        # Aplicar filtro mínimo
+        for i in range(altura):
+            for j in range(ancho):
+                # Extraer ventana local considerando los bordes
+                x_min = max(0, i - radio)
+                x_max = min(altura, i + radio + 1)
+                y_min = max(0, j - radio)
+                y_max = min(ancho, j + radio + 1)
+                
+                # Calcular el mínimo en la ventana local
+                ventana = imagen[x_min:x_max, y_min:y_max]
+                imagen_filtrada[i, j] = np.min(ventana)
+        
+        return imagen_filtrada
+    
+    def filtro_minimo(self):
+        resultado = self.filtro_minimo_manual(self.image_top_np,3)
+        self.result_image = Image.fromarray(resultado)
+        self.mostrar_imagen_resultado(self.result_image)
+
+
     def multi_umbralizado(self):
         T1 = simpledialog.askinteger("Primer umbral", "Introduce el valor continuo (0 a 255):")
         T2 = simpledialog.askinteger("Segundo umbral", "Introduce el valor continuo (0 a 255):")
@@ -935,6 +1048,18 @@ class ImageEditorApp:
         imagen_multi_umbrales[gris >= T2] = 255
         self.result_image = Image.fromarray(imagen_multi_umbrales)
         self.mostrar_imagen_resultado(self.result_image)
+
+    def segmentados(self):
+        try:
+            self.ventana_filtro = tk.Toplevel(self.root)
+            self.ventana_filtro.title("Operaciones con Filtro")
+            options = [("Segmentacion",self.segmentacion),
+                    ("Segmentacion_Parcial",self.segmentacion_parcial)]
+            for (text, command) in options:
+                button = tk.Button(self.ventana_filtro, text=text, command=command)
+                button.pack(pady=5)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def segmentacion(self):
         # Crear una copia de la imagen
